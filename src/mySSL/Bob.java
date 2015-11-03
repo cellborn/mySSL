@@ -27,7 +27,7 @@ public class Bob {
 	public Bob()
 	{
 		try {
-			ServerSocket socket = new ServerSocket(6852);
+			ServerSocket socket = new ServerSocket(8888);
 			SecureRandom rand = new SecureRandom(); 
 			
 			aliceSocket = socket.accept();
