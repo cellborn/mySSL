@@ -172,6 +172,8 @@ public class Alice {
 		byte [] msg = ArrayUtils.toPrimitive(bobMessages.toArray(new Byte[bobMessages.size()]));
 		
 		byte[] aliceMAC = certEd.Hash(msg);
+		output.Output("Alice sending hashed messages to Bob\n");
+		
 		
 	}
 	
