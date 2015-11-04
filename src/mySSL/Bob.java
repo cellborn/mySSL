@@ -80,6 +80,13 @@ public class Bob {
 			alice_cert = (X509Certificate)aOIStream.readObject();
 			output.Output("Recieved Alice request with supported cipher " + supportCipher + " and certificate " + alice_cert.toString()+"\n");
 			
+			byte[] talk_Req_b =ByteBuffer.allocate(4).putInt(request).array();
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(talk_Req_b)));
+			byte[] cipher_supported_b= supportCipher.getBytes();
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(cipher_supported_b)));
+			byte[] cert_A_b = alice_cert.getEncoded();
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(cert_A_b)));
+			
 			output.Output("Verifying Alice's Certificate\n");
 			alice_cert.checkValidity();
 			alice_cert.verify(alice_cert.getPublicKey());
@@ -87,9 +94,6 @@ public class Bob {
 			
 			alice_cert_pub = alice_cert.getPublicKey();
 			output.Output("Got Alices public key from certificate\n" + alice_cert_pub.toString()+"\n");
-			
-			byte[] alice_cert_bytes = alice_cert.getEncoded();
-			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(alice_cert_bytes)));
 			
 			
 		} catch (Exception e) {
@@ -99,6 +103,8 @@ public class Bob {
 	}
 	private void GenerateCert(String keyType, String sigType)
 	{
+		output.Output("Bob generating certificate\n");
+		
 		certEd = new CertEncryptDecrypt(keyType, sigType);
 		
 		keypair = certEd.CreateKeys(keySize);
@@ -106,10 +112,19 @@ public class Bob {
 		certEd.CertCreate("bob_cert", "bob_keystore", "123456", keypair);
 		
 		bob_cert = certEd.getCert("bob_cert");
-		
-		output.Output("Bob generating certificate\n");
+	
 		output.Output("Bob Cert= " + bob_cert.toString() + "\n");
 		
+		try {
+			aOOStream.writeObject(bob_cert);
+			System.out.flush();
+			output.Output("Bob sending certificate to Alice\n");
+			byte[] cert_B_b = bob_cert.getEncoded();
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(cert_B_b)));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	private void SendReceiveRandom()
 	{
