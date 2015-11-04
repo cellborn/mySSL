@@ -168,7 +168,7 @@ public class Bob {
 		byte[] strServer  = "Server".getBytes();
 		aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(strServer)));
 		
-		byte [] msg = ArrayUtils.toPrimitive(aliceMessages.toArray(new Byte[aliceMessages.size()]));
+		byte[] msg = ArrayUtils.toPrimitive(aliceMessages.toArray(new Byte[aliceMessages.size()]));
 		byte[] bobMAC = certEd.Hash(msg);
 		
 		try {
@@ -183,7 +183,7 @@ public class Bob {
 			byte [] computedAliceMac = certEd.Hash(msg_A);
 			
 			//Verfiy computer MAC and recieved MAC are same
-			if(Arrays.equals(bobMAC, computedAliceMac))
+			if(Arrays.equals(aliceMAC, computedAliceMac))
 			{
 				output.Output("Bob computed MAC and recieved MAC from Alice match");
 			}

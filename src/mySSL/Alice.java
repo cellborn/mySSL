@@ -176,6 +176,7 @@ public class Alice {
 		output.Output("Alice starting to hash messages with SHA1\n");
 		ArrayList<Byte> msg_bytes_B= new ArrayList<Byte>(bobMessages);
 		byte[] strClient = "Client".getBytes();
+		bobMessages.addAll(Arrays.asList(ArrayUtils.toObject(strClient)));
 		byte [] msg = ArrayUtils.toPrimitive(bobMessages.toArray(new Byte[bobMessages.size()]));
 		byte[] aliceMAC = certEd.Hash(msg);
 		
