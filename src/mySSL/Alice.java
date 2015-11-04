@@ -17,7 +17,7 @@ import org.apache.commons.lang3.*;
 
 public class Alice {
 	
-	String encryptType =  "AES";
+	String encryptType =  "RSA";
 	String integType = "SHA1WithRSA";
 	String supportedCipher = "AESxSHA1";
 	SecureRandom ranNum = new SecureRandom();
@@ -180,10 +180,10 @@ public class Alice {
 		byte[] aliceMAC = certEd.Hash(msg);
 		
 		try {
-			output.Output("Alice sending hashed message to Bob\n");
+			output.Output("Alice sending hashed MAC message to Bob\n");
 			bOOStream.writeObject(aliceMAC);
 			
-			output.Output("Alice receiving hashed message from Bob\n");
+			output.Output("Alice receiving hashed MAC message from Bob\n");
 			byte [] bobMAC = (byte[])bOIStream.readObject();  
 			
 			output.Output("Alice verfiying Bob's hashed MAC");

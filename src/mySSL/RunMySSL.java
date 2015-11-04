@@ -10,7 +10,7 @@ public class RunMySSL {
 			{
 				try
 				{
-					Bob bob = new Bob();
+					Bob bob = new Bob(8888);
 				}
 				catch (Exception e)
 				{

@@ -35,20 +35,25 @@ public class Bob {
 	X509Certificate alice_cert;
 	X509Certificate bob_cert;
 	PublicKey alice_cert_pub;
-	String encryptType =  "AES";
+	String encryptType =  "RSA";
 	String integType = "SHA1WithRSA";
 	CertAndKeyGen keypair;
 	int keySize = 1024;
+	SecureRandom ranNum = new SecureRandom();
+	long randomAlice, randomBob, master_secret;
+	AESEncryptDecrypt AesEd;
 	
 	ArrayList<Byte> aliceMessages = new ArrayList<Byte>();
 	
 	public Bob(int port)
 	{
-		Util output = new Util(filename);
+		output = new Util(filename);
 		StartServer(port);
 		GetAliceCert();
 		GenerateCert(encryptType, integType);
-		
+		 SendReceiveRandom();
+		 SendReceiveMAC();
+		 RSAKeys();
 	}
 	private void StartServer(int port)
 	{
@@ -128,67 +133,68 @@ public class Bob {
 	}
 	private void SendReceiveRandom()
 	{
-		output.Output("Generating Random number nonce for Alice\n");
+		output.Output("Receiving encrypted random number nonce from Alice\n");
 		
-		randomAlice = Math.abs(ranNum.nextLong());
-		output.Output("Alice random nonce is: " + Long.toString(randomAlice) + "\n");
-		
-		output.Output("Encrypting Alice nonce with Bob public key\n");
-		byte[] encryptRA = certEd.CertEncrypt(bob_cert_pub, randomAlice);
-		
-		try{
-		output.Output("Sending encrypted nonce to Bob\n");
-		bOOStream.writeObject(encryptRA);
-		
-		byte[] encrypted_R_A_b = encryptRA;
-		bobMessages.addAll(Arrays.asList(ArrayUtils.toObject(encrypted_R_A_b)));
-		
-		output.Output("Receiving random nonce from Bob\n");
-		byte [] encrypted_R_B = (byte[])bOIStream.readObject();  
-		byte[] encrypted_R_B_b = encrypted_R_B;
-		bobMessages.addAll(Arrays.asList(ArrayUtils.toObject(encrypted_R_B_b)));
-		
-		output.Output("Decrypting random nonce received from Bob\n");
-		randomBob = certEd.CertDecrypt(certEd.getPrivateKey(), encrypted_R_B_b);
-		output.Output("Decrypted random nonce from Bob with Alice private key is: " + Long.toString(randomBob)+"\n");
-		
+		try
+		{
+			byte [] encrypted_R_A = (byte[])aOIStream.readObject();
+			byte[] encrypted_R_A_b = encrypted_R_A;
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(encrypted_R_A_b)));
+			
+			randomAlice = certEd.CertDecrypt(certEd.getPrivateKey(), encrypted_R_A);
+			output.Output("Bob decrypted Alices random nonce: " + Long.toString(randomAlice)+ "\n");
+			
+			output.Output("Bob generating random nonce to encrypt with Alice public key\n");
+			randomBob = Math.abs(ranNum.nextLong());
+			output.Output("Bob random nonce is: " + Long.toString(randomBob) + "\n");
+			
+			byte [] encrypted_R_B= certEd.CertEncrypt(alice_cert_pub, randomBob);
+			aOOStream.writeObject(encrypted_R_B);
+			byte[] encrypted_R_B_b = encrypted_R_B;
+			aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(encrypted_R_B_b)));
+			output.Output("Bob encrypted and sent random nonce to Alice");
 		}
-		catch (Exception e){
+		catch (Exception e)
+		{
 			e.printStackTrace();
 		}
+		
+		
 	}
 	private void SendReceiveMAC()
 	{
-		output.Output("Alice starting to hash messages with SHA1\n");
-		ArrayList<Byte> msg_bytes_B= new ArrayList<Byte>(bobMessages);
-		byte[] strClient = "Client".getBytes();
-		byte [] msg = ArrayUtils.toPrimitive(bobMessages.toArray(new Byte[bobMessages.size()]));
-		byte[] aliceMAC = certEd.Hash(msg);
+		output.Output("Bob starting to hash messages with SHA1\n");
+		ArrayList<Byte> msg_bytes_A= new ArrayList<Byte>(aliceMessages);
+		byte[] strServer  = "Server".getBytes();
+		aliceMessages.addAll(Arrays.asList(ArrayUtils.toObject(strServer)));
+		
+		byte [] msg = ArrayUtils.toPrimitive(aliceMessages.toArray(new Byte[aliceMessages.size()]));
+		byte[] bobMAC = certEd.Hash(msg);
 		
 		try {
-			output.Output("Alice sending hashed message to Bob\n");
-			bOOStream.writeObject(aliceMAC);
+			output.Output("Bob receiving hashed message from Alice\n");
+			byte[] aliceMAC = (byte[])aOIStream.readObject();
 			
-			output.Output("Alice receiving hashed message from Bob\n");
-			byte [] bobMAC = (byte[])bOIStream.readObject();  
-			
-			output.Output("Alice verfiying Bob's hashed MAC");
-			byte[] strServer = "Server".getBytes();
-			msg_bytes_B.addAll(Arrays.asList(ArrayUtils.toObject(strServer)));
-			byte [] msg_B=  ArrayUtils.toPrimitive(msg_bytes_B.toArray(new Byte[msg_bytes_B.size()]));
+			output.Output("Bob verfiying Alices hashed MAC");
+			byte[] strClient = "Client".getBytes();
+			msg_bytes_A.addAll(Arrays.asList(ArrayUtils.toObject(strClient)));
+			byte [] msg_A=  ArrayUtils.toPrimitive(msg_bytes_A.toArray(new Byte[msg_bytes_A.size()]));
 			//hashing all exchanged messages+"Server" using SHA-1
-			byte [] computedBobMac = certEd.Hash(msg_B);
+			byte [] computedAliceMac = certEd.Hash(msg_A);
 			
 			//Verfiy computer MAC and recieved MAC are same
-			if(Arrays.equals(bobMAC, computedBobMac))
+			if(Arrays.equals(bobMAC, computedAliceMac))
 			{
-				output.Output("Alice computed MAC and recieved MAC from Bob match");
+				output.Output("Bob computed MAC and recieved MAC from Alice match");
 			}
 			else
 			{
-				output.Output("The Alice computed MAC and recieved MAC from Bob do not match, handshake failed");
+				output.Output("The Bob computed MAC and recieved MAC from Alice do not match, handshake failed");
 				System.exit(0);
 			}
+			
+			aOOStream.writeObject(bobMAC);
+			output.Output("Bob sent MAC hash to Alice ");
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -202,12 +208,12 @@ public class Bob {
 		output.Output("Master Secret to generate AES keys is " + Long.toString(master_secret) + "\n");
 		
 		AesEd = new AESEncryptDecrypt();
-		SecretKey toBob = AesEd.CreateAESKeys("123456", master_secret);
-		SecretKey fromBob = AesEd.CreateAESKeys("234567", master_secret);
-		SecretKey hashToBob = AesEd.CreateAESKeys("654321", master_secret);
-		SecretKey hashFromBob = AesEd.CreateAESKeys("765432", master_secret);
+		SecretKey toAlice = AesEd.CreateAESKeys("123456", master_secret);
+		SecretKey fromAlice = AesEd.CreateAESKeys("234567", master_secret);
+		SecretKey hashToAlice = AesEd.CreateAESKeys("654321", master_secret);
+		SecretKey hashFromAlice = AesEd.CreateAESKeys("765432", master_secret);
 		
-		output.Output("Alice generated AES keys for encrypted communication\n");	
+		output.Output("Bob generated AES keys for encrypted communication\n");	
 	}
 
 }
