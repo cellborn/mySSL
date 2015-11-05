@@ -44,6 +44,11 @@ public class Alice {
 	AESEncryptDecrypt AesEd;
 	SecretKey aesSecret;
 	
+	SecretKey toBob; 
+	SecretKey fromBob; 
+	SecretKey hashToBob; 
+	SecretKey hashFromBob; 
+	
 	public Alice(int port)
 	{
 		output = new Util(filename);
@@ -54,6 +59,7 @@ public class Alice {
 		SendReceiveRandom();
 		SendReceiveMAC();
 		RSAKeys();
+		ReceiveFile();
 	}
 	
 	private void OpenSocket(int port)
@@ -216,12 +222,136 @@ public class Alice {
 		master_secret = randomAlice ^ randomBob;
 		output.Output("Master Secret to generate AES keys is " + Long.toString(master_secret) + "\n");
 		
+		String password = Long.toString(master_secret);
+		
+		password = password.substring(0, 15);
+		
 		AesEd = new AESEncryptDecrypt();
-		SecretKey toBob = AesEd.CreateAESKeys("123456", master_secret);
-		SecretKey fromBob = AesEd.CreateAESKeys("234567", master_secret);
-		SecretKey hashToBob = AesEd.CreateAESKeys("654321", master_secret);
-		SecretKey hashFromBob = AesEd.CreateAESKeys("765432", master_secret);
+		toBob = AesEd.CreateAESKeys(password, master_secret);
+		fromBob = AesEd.CreateAESKeys(password, master_secret);
+		hashToBob = AesEd.CreateAESKeys(password, master_secret);
+		hashFromBob = AesEd.CreateAESKeys(password, master_secret);
 		
 		output.Output("Alice generated AES keys for encrypted communication\n");	
+	}
+	private void ReceiveFile()
+	{
+		output.Output("==============================================================================\n");
+		output.Output("Data Exchange Phase started at Bob \n");
+		output.Output("==============================================================================\n");
+		
+
+		//receiving file chunks formulated as SSL blocks
+		output.Output("Alice receiving the file into chunks and reformulating these chunks into a single file \n");
+		
+
+
+		FileOutputStream out = null;
+		int chunklen=1024;
+
+		try {
+			out = new FileOutputStream("second_r.pdf");
+
+			int seq=0;
+			byte[] RH= new byte[8];
+			byte [] tohash=new byte[1036];
+			boolean eof=false;
+
+			while(!eof){
+				//receiving SSL block
+				byte [] SSL_blk = (byte[])bOIStream.readObject();  
+
+				//extracting record header
+				RH =Arrays.copyOfRange(SSL_blk,0, 8);
+
+				//checking RH end of file field
+
+				if(RH[2]==1)
+				{
+					//end of file reached
+					output.Output("Alice received all the SSL block of the file  \n");
+					//extracting last chunk length
+					byte [] last_chunklen_b =Arrays.copyOfRange(SSL_blk,3, 7);
+					ByteBuffer byteBuffer = ByteBuffer.wrap(last_chunklen_b);
+					chunklen =byteBuffer.getInt(0);
+
+					eof=true;
+				}
+
+				//extracting encrypted part	
+				byte [] todecrypt =Arrays.copyOfRange(SSL_blk,8, SSL_blk.length);
+
+				//decrypting the SSL block
+				byte [] decrypted = AesEd.AESDecrypt(todecrypt, fromBob);
+
+				//extracting data from SSL block
+				byte [] data = Arrays.copyOfRange(decrypted,0, decrypted.length-20);
+
+				//extracting HMAC from SSL block
+				byte [] HMAC = Arrays.copyOfRange(decrypted, decrypted.length-20,decrypted.length);
+
+				//forming the part to be hashed
+				//adding seq to the part to be hashed
+				byte [] seq_b= ByteBuffer.allocate(4).putInt(seq).array();
+				System.arraycopy(seq_b, 0, tohash, 0, seq_b.length);
+
+				//adding RH to the part to be hashed
+				System.arraycopy(RH, 0, tohash, seq_b.length,RH.length );
+
+				//adding data to the part to be hashed
+				System.arraycopy(data, 0, tohash, seq_b.length+RH.length,data.length );
+
+				//hashing seq,record header, data
+				byte [] HMAC_r = certEd.Hash(tohash);
+
+				//checking that HMAC equal to HMAC_r
+				if (Arrays.equals(HMAC, HMAC_r))
+				{
+					//Integrity protection test succeeded
+					//adding the data extracted to the output file
+					byte [] data_towrite= new byte[chunklen];
+					data_towrite=Arrays.copyOfRange(data,0, data_towrite.length);
+					out.write(data_towrite);
+				}
+				else{
+					//Integrity protection test failed
+					output.Output("Integrity protection test failed at block no. : ");
+					output.Output(Integer.toString(seq));
+					output.Output("\n");
+					System.exit(0);
+				}
+
+
+
+
+
+
+				seq++;
+
+			}
+
+
+			output.Output("Alice received the file  \n");
+
+
+
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally {
+			if (out != null) {
+				try
+				{
+				out.close();
+				}
+				catch(Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+
+		}
+
 	}
 }

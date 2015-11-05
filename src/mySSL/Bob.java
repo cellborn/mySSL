@@ -43,6 +43,11 @@ public class Bob {
 	long randomAlice, randomBob, master_secret;
 	AESEncryptDecrypt AesEd;
 	
+	SecretKey toAlice; 
+	SecretKey fromAlice;
+	SecretKey hashToAlice; 
+	SecretKey hashFromAlice; 
+	
 	ArrayList<Byte> aliceMessages = new ArrayList<Byte>();
 	
 	public Bob(int port)
@@ -54,6 +59,7 @@ public class Bob {
 		 SendReceiveRandom();
 		 SendReceiveMAC();
 		 RSAKeys();
+		 SendFile();
 	}
 	private void StartServer(int port)
 	{
@@ -207,13 +213,125 @@ public class Bob {
 		master_secret = randomAlice ^ randomBob;
 		output.Output("Master Secret to generate AES keys is " + Long.toString(master_secret) + "\n");
 		
+		String password = Long.toString(master_secret);
+		
+		password = password.substring(0, 15);
+		
 		AesEd = new AESEncryptDecrypt();
-		SecretKey toAlice = AesEd.CreateAESKeys("123456", master_secret);
-		SecretKey fromAlice = AesEd.CreateAESKeys("234567", master_secret);
-		SecretKey hashToAlice = AesEd.CreateAESKeys("654321", master_secret);
-		SecretKey hashFromAlice = AesEd.CreateAESKeys("765432", master_secret);
+		toAlice = AesEd.CreateAESKeys(password, master_secret);
+		fromAlice = AesEd.CreateAESKeys(password, master_secret);
+		hashToAlice = AesEd.CreateAESKeys(password, master_secret);
+		hashFromAlice = AesEd.CreateAESKeys(password, master_secret);
 		
 		output.Output("Bob generated AES keys for encrypted communication\n");	
+	}
+	private void SendFile()
+	{
+		output.Output("==============================================================================\n");
+		output.Output("Data Exchange Phase started at Bob ");
+		output.Output("==============================================================================\n");
+
+
+		//Bob reading a file with size > 50Kbytes
+		output.Output("Bob dividing the file into chunks and formulating these chunks into SSL blocks ");
+
+
+		FileInputStream in = null;
+
+		try {
+			in = new FileInputStream("2015SecondPA.pdf");
+
+			int seq=0;
+			byte[] RH= new byte[8];
+
+
+			int count=0;
+			byte [] tohash=new byte[1036];
+			byte[] chunk = new byte[1024];
+			int chunkLen = 0;
+			while ((chunkLen = in.read(chunk)) != -1) {
+				// formulate that chunk into SSL block
+
+				//adding seq to SSL block to be hashed
+				byte [] seq_b= ByteBuffer.allocate(4).putInt(seq).array();
+				System.arraycopy(seq_b, 0, tohash, 0, seq_b.length);
+
+				//adding RH to SSL block to be hashed
+				//add the record type = 1 for data exchange
+				RH[0]= 1;
+
+				//add the SSL version = 3 
+				RH[1]=3;
+
+				//add the end of file indicator=0 meaning it is not the end of file yet
+				RH[2]=0;
+				if (chunkLen!=1024)
+					//add the end of file indicator=1 meaning it is  the end of file 
+					RH[2]=1;
+
+				//add chunk length 
+				byte [] chunkLen_b= ByteBuffer.allocate(4).putInt(chunkLen).array();
+				System.arraycopy(chunkLen_b, 0, RH, 3, chunkLen_b.length);
+
+				//add the record header length= 8
+				RH[7]=8;
+
+				System.arraycopy(RH, 0, tohash, seq_b.length,RH.length );
+
+				//adding data to SSL block to be hashed
+				System.arraycopy(chunk, 0, tohash, seq_b.length+RH.length,chunk.length );
+
+				//hashing seq,record header, data
+				byte [] HMAC = certEd.Hash(tohash);
+
+				byte[] toencrypt = new byte [chunk.length+HMAC.length];
+
+				//adding data to SSL block to be encrypted
+				System.arraycopy(chunk, 0, toencrypt, 0,chunk.length );
+
+				//adding HMAC to SSL block to be encrypted
+				System.arraycopy(HMAC, 0, toencrypt, chunk.length,HMAC.length );
+
+				//encrypting data and HMAC
+				byte [] encrypted = AesEd.AESEncrypt(toencrypt, toAlice);
+
+				byte [] tosend = new byte [RH.length+encrypted.length];
+
+				//adding RH to SSL block to send
+				System.arraycopy(RH, 0, tosend, 0,RH.length );
+
+				//adding encrypted data to SSL block to send
+				System.arraycopy(encrypted, 0, tosend, RH.length,encrypted.length );
+
+				//adding HMAC to SSL block to send
+				//System.arraycopy(HMAC, 0, tosend, RH.length+encrypted.length, HMAC.length );
+
+
+
+				//sending the SSL block to Bob
+				aOOStream.writeObject(tosend);
+
+				seq++;
+
+			}
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		finally {
+			if (in != null) {
+				try{
+				in.close();
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+			}
+
+		}
+
 	}
 
 }

@@ -8,13 +8,15 @@ import javax.crypto.spec.*;
 
 public class AESEncryptDecrypt {
 	
+	SecretKey secret = null;
+	
 	public AESEncryptDecrypt()
 	{
 		
 	}
 	public SecretKey CreateAESKeys(String password, long master_secret)
 	{
-		SecretKey secret = null;
+		
 		try
 		{
 		final byte[] master_key_Bytes = ByteBuffer.allocate(8).putLong(master_secret).array();
@@ -52,6 +54,5 @@ public class AESEncryptDecrypt {
 
 		return original;
 	}
-	
 
 }
