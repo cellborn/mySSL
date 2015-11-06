@@ -14,6 +14,13 @@ public class AESEncryptDecrypt {
 	{
 		
 	}
+	/**
+	 * Create AES128 keys from first 128 bits of master secret 
+	 * Use master secret from XOR of Alice and bob nonce as Salt
+	 * @param password
+	 * @param master_secret
+	 * @return
+	 */
 	public SecretKey CreateAESKeys(String password, long master_secret)
 	{
 		
@@ -31,6 +38,13 @@ public class AESEncryptDecrypt {
 		}
 		return secret;
 	}
+	/**
+	 * Used to encrypt file segments with AES128
+	 * @param message
+	 * @param secret
+	 * @return
+	 * @throws Exception
+	 */
 	public byte [] AESEncrypt(byte [] message, SecretKey secret) throws Exception {
 
 
@@ -42,6 +56,13 @@ public class AESEncryptDecrypt {
 		return (encrypted);
 
 	}
+	/**
+	 * Used to decrypt file segments 
+	 * @param message
+	 * @param secret
+	 * @return
+	 * @throws Exception
+	 */
 	public byte [] AESDecrypt(byte [] message, SecretKey secret) throws Exception {
 
 

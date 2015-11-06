@@ -49,7 +49,10 @@ public class Bob {
 	SecretKey hashFromAlice; 
 	
 	ArrayList<Byte> aliceMessages = new ArrayList<Byte>();
-	
+	/**
+	 * Constructor used to call all private methods to run program
+	 * @param port
+	 */
 	public Bob(int port)
 	{
 		output = new Util(filename);
@@ -61,6 +64,10 @@ public class Bob {
 		 RSAKeys();
 		 SendFile();
 	}
+	/**
+	 * Start the BOb Server and creates all the input and output strem objects for transfering messages over sockets
+	 * @param port
+	 */
 	private void StartServer(int port)
 	{
 		try {
@@ -81,6 +88,10 @@ public class Bob {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Method to accept Alices request to talk and extracts 
+	 * certificate public key and verifies and validates the certificate
+	 */
 	private void GetAliceCert()
 	{
 		output.Output("Bob receiving Alice request and getting Alice's certificate and verifying\n");
@@ -112,6 +123,12 @@ public class Bob {
 			e.printStackTrace();
 		} 
 	}
+	/**
+	 * Method to generate a certificate with public and private keys for bob to use 
+	 * to communication with ALice
+	 * @param keyType
+	 * @param sigType
+	 */
 	private void GenerateCert(String keyType, String sigType)
 	{
 		output.Output("Bob generating certificate\n");
@@ -137,6 +154,10 @@ public class Bob {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Reads the random nonce and decrypts from alice and then generates a random nonce
+	 * and encrypts to send to alice
+	 */
 	private void SendReceiveRandom()
 	{
 		output.Output("Receiving encrypted random number nonce from Alice\n");
@@ -167,6 +188,9 @@ public class Bob {
 		
 		
 	}
+	/**
+	 * Gets alices MAC and generates a MAC for authentication
+	 */
 	private void SendReceiveMAC()
 	{
 		output.Output("Bob starting to hash messages with SHA1\n");
@@ -207,6 +231,9 @@ public class Bob {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Generates AES keys to be used mistakenly named method RSA 
+	 */
 	private void RSAKeys()
 	{
 		output.Output("Creating master secret for AES from OR of R alice and R Bob\n");
@@ -225,6 +252,9 @@ public class Bob {
 		
 		output.Output("Bob generated AES keys for encrypted communication\n");	
 	}
+	/**
+	 * Sends the file to ALice in the SSL format using AES encryption
+	 */
 	private void SendFile()
 	{
 		output.Output("==============================================================================\n");

@@ -1,5 +1,10 @@
 package mySSL;
-
+/**
+ * Class to start the program 
+ * Starts the Bob and Alice class on seperate thread.
+ * @author mhunsake
+ *
+ */
 public class RunMySSL {
 
 	public static void main(String[] args) {

@@ -16,6 +16,11 @@ public class CertEncryptDecrypt {
 	CertAndKeyGen keys;
 	KeyStore keyStore;
 	
+	/**
+	 * Constructor used to generate Cert and Keys
+	 * @param keyType
+	 * @param sigType
+	 */
 	public CertEncryptDecrypt(String keyType, String sigType)
 	{
 		
@@ -30,6 +35,11 @@ public class CertEncryptDecrypt {
 		}
 		
 	}
+	/**
+	 * Generate RSA keys based on key size passed
+	 * @param keysize
+	 * @return
+	 */
 	public CertAndKeyGen CreateKeys(int keysize)
 	{
 		try {
@@ -41,7 +51,13 @@ public class CertEncryptDecrypt {
 		
 		return keys;
 	}
-	
+	/**
+	 * Create RSA certificate and get Public and Private keys and store in keystore
+	 * @param keyStoreAlias
+	 * @param keyStoreName
+	 * @param password
+	 * @param keys
+	 */
 	public void CertCreate(String keyStoreAlias, String keyStoreName, String password, CertAndKeyGen keys)
 	{
 		try{
@@ -84,6 +100,11 @@ public class CertEncryptDecrypt {
 		}
 
 	}
+	/**
+	 * Get the generated certificate by looking up in keystore based on keystore alias name
+	 * @param keyStoreAlias
+	 * @return
+	 */
 	public X509Certificate getCert(String keyStoreAlias)
 	{
 		X509Certificate cert = null;
@@ -97,6 +118,10 @@ public class CertEncryptDecrypt {
 		return cert;
 		
 	}
+	/**
+	 * return the private key from kestore 
+	 * @return
+	 */
 	public PrivateKey getPrivateKey()
 	{
 		PrivateKey keyPriv = null;
@@ -110,7 +135,12 @@ public class CertEncryptDecrypt {
 		return keyPriv;
 		
 	}
-	
+	/**
+	 * Encrypt a message using the Public key from certificate
+	 * @param pubKey
+	 * @param message
+	 * @return
+	 */
 	public byte[] CertEncrypt(PublicKey pubKey, long message)
 	{
 		Cipher cipher;
@@ -126,6 +156,12 @@ public class CertEncryptDecrypt {
 		}
 		return cipherTextBytes;
 	}
+	/**
+	 * Decrypt a RSA message using supplied Private key
+	 * @param privKey
+	 * @param message
+	 * @return
+	 */
 	public long CertDecrypt(PrivateKey privKey, byte[] message )
 	{
 		Cipher cipher;
@@ -143,6 +179,11 @@ public class CertEncryptDecrypt {
 		} 
 		return plainText;
 	}
+	/**
+	 * Create a SHA1 message digest 
+	 * @param messageToHash
+	 * @return
+	 */
 	public byte[] Hash(byte[] messageToHash)
 	{
 		MessageDigest md = null;

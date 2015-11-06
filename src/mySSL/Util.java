@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-
+/**
+ * Class to write output to console and to a file
+ * @author mhunsake
+ *
+ */
 public class Util {
 
 	File file;

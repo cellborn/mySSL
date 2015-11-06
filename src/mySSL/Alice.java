@@ -49,6 +49,10 @@ public class Alice {
 	SecretKey hashToBob; 
 	SecretKey hashFromBob; 
 	
+	/**
+	 * Constructor that calls each method in order of process
+	 * @param port
+	 */
 	public Alice(int port)
 	{
 		output = new Util(filename);
@@ -61,7 +65,11 @@ public class Alice {
 		RSAKeys();
 		ReceiveFile();
 	}
-	
+	/**
+	 * Intialize port and output and input streams
+	 * 
+	 * @param port
+	 */
 	private void OpenSocket(int port)
 	{
 		try {
@@ -82,7 +90,11 @@ public class Alice {
 			e.printStackTrace();
 		}
 	}
-	
+	/**
+	 * Method to generate certificate keys and then create certifacte for Alice
+	 * @param keyType
+	 * @param sigType
+	 */
 	private void GenerateCert(String keyType, String sigType)
 	{
 		certEd = new CertEncryptDecrypt(keyType, sigType);
@@ -97,6 +109,9 @@ public class Alice {
 		output.Output("Alice Cert= " + alice_cert.toString() + "\n");
 		
 	}
+	/**
+	 * Send initial message from alice with certificate
+	 */
 	private void StartHandShake()
 	{
 		output.Output("Alice starting communication\n");
@@ -121,6 +136,9 @@ public class Alice {
 		}
 		
 	}
+	/**
+	 * Get Bob's response and certificate and verify and validate Bob's certificate
+	 */
 	private void GetBobCert()
 	{
 		output.Output("Getting Bob's certificate and Verifying\n");
@@ -146,6 +164,10 @@ public class Alice {
 			e.printStackTrace();
 		} 
 	}
+	/**
+	 * Generate random nonce and encrypt with bob public key
+	 * Then get Bob's random nonce and decrypte using Alice private key
+	 */
 	private void SendReceiveRandom()
 	{
 		output.Output("Generating Random number nonce for Alice\n");
@@ -177,6 +199,10 @@ public class Alice {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Generate Alice MAC and recieve Bob's MAC and verify by
+	 * comparing Alice's generate MAC with MAC recieved from Bob
+	 */
 	private void SendReceiveMAC()
 	{
 		output.Output("Alice starting to hash messages with SHA1\n");
@@ -216,6 +242,11 @@ public class Alice {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Generate AES key using to encrypt and decrypt file.
+	 * Using AES128 so password used to create keys is the first
+	 * 128 bits of the master secret from XOR of Alice and Bob nonce
+	 */
 	private void RSAKeys()
 	{
 		output.Output("Creating master secret for AES from OR of R alice and R Bob\n");
@@ -234,6 +265,9 @@ public class Alice {
 		
 		output.Output("Alice generated AES keys for encrypted communication\n");	
 	}
+	/**
+	 * recieve the file from bob and decrypt using AES keys
+	 */
 	private void ReceiveFile()
 	{
 		output.Output("==============================================================================\n");
@@ -269,7 +303,7 @@ public class Alice {
 				if(RH[2]==1)
 				{
 					//end of file reached
-					output.Output("Alice received all the SSL block of the file  \n");
+					output.Output("Alice received all and verified the SSL block of the file  \n");
 					//extracting last chunk length
 					byte [] last_chunklen_b =Arrays.copyOfRange(SSL_blk,3, 7);
 					ByteBuffer byteBuffer = ByteBuffer.wrap(last_chunklen_b);
@@ -337,6 +371,7 @@ public class Alice {
 
 		}catch(Exception e)
 		{
+			output.Output("Integrity protection test failed possibly due to mismatched keys corrupted file\n ");
 			e.printStackTrace();
 		}
 		finally {
